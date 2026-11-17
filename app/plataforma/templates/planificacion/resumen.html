@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block titulo %}Planificación {{ fecha }}{% endblock %}
+{% block contenido %}
+<div class="titulo">
+  <div><h1>Planificación del día</h1><p class="muted">{{ fecha }}</p></div>
+  <div class="acciones">
+    <a class="btn sec chico" href="{{ url_for('planificacion.resumen', fecha=ayer) }}">← Día anterior</a>
+    <form method="get" style="margin:0"><input type="date" name="fecha" value="{{ fecha }}" onchange="this.form.submit()" style="padding:7px 10px;font-size:14px"></form>
+    <a class="btn sec chico" href="{{ url_for('planificacion.resumen', fecha=manana) }}">Día siguiente →</a>
+    {% if puede('cargas') %}<a class="btn chico" href="{{ url_for('cargas.inicio', tipo='planificacion') }}">Cargar planificación</a>{% endif %}
+  </div>
+</div>
+
+{% if not rutas %}
+<div class="card" style="text-align:center;padding:32px">
+  <p class="muted" style="margin:0 0 12px">No hay planificación cargada para este día.</p>
+  {% if fechas %}<p class="small">Días con planificación: {% for f in fechas %}<a href="{{ url_for('planificacion.resumen', fecha=f) }}">{{ f }}</a>{{ ', ' if not loop.last }}{% endfor %}</p>{% endif %}
+</div>
+{% else %}
+<div class="kpis">
+  <div class="kpi"><b>{{ tot.rutas }}</b><span>Rutas</span></div>
+  <div class="kpi"><b>{{ tot.clientes }}</b><span>Clientes planificados</span></div>
+  <div class="kpi"><b>{{ tot.cajas|num(0) }}</b><span>Cajas planificadas</span></div>
+  <div class="kpi"><b>{{ (tot.peso / 1000)|num(1) }} t</b><span>Peso total</span></div>
+  <div class="kpi {{ 'destacado' if tot.alertas }}"><b>{{ tot.alertas }}</b><span>Alertas · {{ tot.riesgo|num }} cajas en riesgo{% if tot.pct_riesgo is not none %} ({{ tot.pct_riesgo|num(1) }}%){% endif %}</span></div>
+</div>
+<div class="tabla-wrap">
+<table>
+  <thead><tr><th>Ruta</th><th class="ocultar-movil">Conductor</th><th class="ocultar-movil">Vehículo</th><th class="num">Clientes</th><th class="num">Cajas</th>
+    <th class="num ocultar-movil">Peso (kg)</th><th class="ocultar-movil">Horario</th><th class="num">Alertas</th><th class="num ocultar-movil">Averías (cajas)</th><th></th></tr></thead>
+  <tbody>
+  {% for r in rutas %}
+  <tr>
+    <td class="mono"><b>{{ r.ruta_codigo }}</b></td>
+    <td class="ocultar-movil">{{ r.conductor or '–' }}</td>
+    <td class="ocultar-movil mono">{{ r.vehiculo or '–' }}</td>
+    <td class="num">{{ r.clientes }}</td>
+    <td class="num">{{ r.cajas|num(0) }}</td>
+    <td class="num ocultar-movil">{{ r.peso|num(0) }}</td>
+    <td class="ocultar-movil">{{ (r.inicio or '')[11:16] }}–{{ (r.fin or '')[11:16] }}</td>
+    <td class="num">{% if r.alertas %}<span class="pill {{ 'Pendiente' if r.abiertas else 'gris' }}">{{ r.alertas }}{% if r.abiertas %} · {{ r.abiertas }} abiertas{% endif %}</span>{% else %}0{% endif %}</td>
+    <td class="num ocultar-movil">{{ r.averias|num }}</td>
+    <td style="text-align:right"><a class="btn sec chico" href="{{ url_for('planificacion.ruta', ruta=r.ruta_codigo, fecha=fecha) }}">Ver ruta</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endif %}
+{% endblock %}

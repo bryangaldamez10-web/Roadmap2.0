@@ -1,0 +1,9 @@
+{
+  "name": "Distribución La Constancia",
+  "short_name": "Distribución",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1c1b19",
+  "theme_color": "#1c1b19",
+  "icons": [{ "src": "/static/icono.svg", "sizes": "any", "type": "image/svg+xml" }]
+}

@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block titulo %}Cargar datos{% endblock %}
+{% block contenido %}
+<div class="titulo"><div><h1>Cargar datos</h1><p class="muted">Sube un Excel o CSV. Antes de guardar verás una vista previa con lo que se va a crear, actualizar y los errores.</p></div></div>
+
+<div class="grid g2">
+  <form class="card" method="post" enctype="multipart/form-data" style="margin:0">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label for="tipo">¿Qué vas a cargar?</label>
+    <select id="tipo" name="tipo" required>
+      <option value="">Elegir…</option>
+      {% for clave, e in entidades.items() %}<option value="{{ clave }}" {{ 'selected' if tipo_sel == clave }}>{{ e.titulo }}</option>{% endfor %}
+    </select>
+    <label for="archivo">Archivo (.xlsx o .csv)</label>
+    <input id="archivo" name="archivo" type="file" accept=".xlsx,.xlsm,.csv,.txt" required>
+    <button class="btn bloque" style="margin-top:18px">Revisar archivo</button>
+  </form>
+
+  <div class="card" style="margin:0">
+    <h2>Columnas que reconoce cada carga</h2>
+    <p class="small muted" style="margin-top:-6px">No importa el orden ni las tildes. Si tus encabezados tienen otro nombre, descarga la plantilla.</p>
+    {% for clave, e in entidades.items() %}
+    <details style="border-top:1px solid var(--line);padding:8px 0">
+      <summary style="cursor:pointer;font-weight:600">{{ e.titulo }}</summary>
+      <ul class="small" style="margin:8px 0;padding-left:18px">
+        {% for c in e.columnas %}<li><b>{{ c.titulo }}</b>{% if c.requerido %} <span class="pill Pendiente">obligatoria</span>{% endif %}
+          <span class="muted">— también: {{ c.alias[:4]|join(', ') }}</span></li>{% endfor %}
+      </ul>
+      {% if e.desactivar_faltantes %}<p class="small aviso" style="margin:6px 0">Para la base mensual puedes marcar como inactivos los clientes que ya no vengan en el archivo.</p>{% endif %}
+      <a class="small" href="{{ url_for('cargas.plantilla', tipo=clave) }}">Descargar plantilla de {{ e.titulo|lower }}</a>
+    </details>
+    {% endfor %}
+  </div>
+</div>
+
+<h2 style="margin-top:24px">Últimas cargas</h2>
+<div class="tabla-wrap">
+<table>
+  <thead><tr><th>Fecha</th><th>Tipo</th><th class="ocultar-movil">Archivo</th><th>Usuario</th><th class="num">Nuevos</th><th class="num">Actualizados</th><th class="num">Inactivados</th><th class="num">Con error</th></tr></thead>
+  <tbody>
+  {% for c in historial %}
+  <tr><td>{{ c.creado[:16] }}</td><td>{{ entidades[c.tipo].titulo if c.tipo in entidades else c.tipo }}</td><td class="ocultar-movil">{{ c.archivo }}</td>
+    <td>{{ c.usuario }}</td><td class="num">{{ c.nuevas }}</td><td class="num">{{ c.actualizadas }}</td><td class="num">{{ c.desactivadas }}</td><td class="num">{{ c.errores }}</td></tr>
+  {% else %}
+  <tr><td colspan="8" class="muted" style="text-align:center;padding:24px">Todavía no hay cargas.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

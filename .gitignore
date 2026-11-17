@@ -1,0 +1,10 @@
+# Entorno y archivos generados (cada quien los crea en su PC)
+.venv/
+__pycache__/
+*.pyc
+instance/
+*.db
+*.log
+
+# Secretos: nunca subir contraseñas ni claves
+.env

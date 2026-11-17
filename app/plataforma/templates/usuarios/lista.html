@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block titulo %}Usuarios{% endblock %}
+{% block contenido %}
+<div class="titulo"><div><h1>Usuarios</h1><p class="muted">{{ filas|selectattr('activo')|list|length }} activos</p></div>
+  <a class="btn" href="{{ url_for('usuarios.nuevo') }}">+ Nuevo usuario</a></div>
+<div class="tabla-wrap">
+<table>
+  <thead><tr><th>Usuario</th><th>Nombre</th><th>Rol</th><th>Ruta</th><th class="ocultar-movil">Último acceso</th><th>Estado</th><th></th></tr></thead>
+  <tbody>
+  {% for u in filas %}
+  <tr class="{{ 'inactivo' if not u.activo }}">
+    <td class="mono">{{ u.usuario }}</td><td>{{ u.nombre }}</td><td>{{ ROLES.get(u.rol, u.rol) }}</td>
+    <td class="mono">{{ u.ruta_codigo or '–' }}</td>
+    <td class="ocultar-movil">{{ (u.ultimo_acceso or '')[:16] or '–' }}</td>
+    <td>{% if not u.activo %}<span class="pill gris">Inactivo</span>{% elif u.debe_cambiar %}<span class="pill Pendiente">Clave temporal</span>{% else %}<span class="pill Validado">Activo</span>{% endif %}</td>
+    <td style="text-align:right"><a class="btn sec chico" href="{{ url_for('usuarios.editar', uid=u.id) }}">Editar</a></td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<div class="card small" style="margin-top:14px">
+  <h2>Qué puede hacer cada rol</h2>
+  <ul style="margin:0;padding-left:18px">
+    <li><b>Administrador:</b> todo, incluidos usuarios, bitácora y alertas de devolución.</li>
+    <li><b>Supervisor de Distribución:</b> averías, alertas de devolución (crear y dar seguimiento), maestros con teléfonos y carga de datos.</li>
+    <li><b>Validador de averías:</b> validar averías y consultar maestros (sin teléfonos de clientes).</li>
+    <li><b>Ruta / Conductor:</b> registrar averías y alertas de devolución de su ruta, y ver sus propios registros.</li>
+    <li><b>Ventas (consulta):</b> acceso reservado para las fases de alertas y planificación.</li>
+  </ul>
+</div>
+{% endblock %}

@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block titulo %}Alerta {{ a.folio }}{% endblock %}
+{% block contenido %}
+<div class="form-movil">
+  <div class="titulo"><div><h1>{{ 'Alerta creada' if nueva else 'Alerta' }} <span class="mono">{{ a.folio }}</span></h1>
+    <p class="muted">{{ a.creado[:16] }} · {{ a.reportado_por }}</p></div>
+    <span class="pill {{ 'Pendiente' if a.estado == 'Abierta' else ('Validado' if a.estado == 'Evitada' else 'Rechazado') }}">{{ a.estado }}</span></div>
+
+  <div class="card">
+    <h2>Enviar a WhatsApp</h2>
+    <p class="small muted" style="margin-top:-6px">Se abre WhatsApp con el mensaje listo; solo presiona enviar.</p>
+    <div class="grid" style="gap:8px">
+      {% if enlaces.bdr %}<a class="btn bloque wa" href="{{ enlaces.bdr[0] }}" target="_blank" rel="noopener">Enviar al {{ enlaces.bdr[1] }}</a>{% endif %}
+      {% if enlaces.supervisor %}<a class="btn bloque wa" href="{{ enlaces.supervisor[0] }}" target="_blank" rel="noopener">Enviar al {{ enlaces.supervisor[1] }}</a>{% endif %}
+      <a class="btn bloque sec" href="{{ enlaces.elegir }}" target="_blank" rel="noopener">Elegir chat o grupo</a>
+      <button type="button" class="btn sec" id="copiar">Copiar mensaje</button>
+    </div>
+    {% if not enlaces.bdr and not enlaces.supervisor %}<p class="small aviso" style="margin:10px 0 0">El BDR y el supervisor de este cliente no tienen teléfono en los maestros. Usa «Elegir chat o grupo».</p>{% endif %}
+  </div>
+
+  <div class="card">
+    <h2>Mensaje</h2>
+    <pre id="texto" style="white-space:pre-wrap;font:14px/1.5 system-ui,-apple-system,Segoe UI,sans-serif;margin:0;background:var(--soft);padding:12px;border-radius:10px">{{ texto }}</pre>
+  </div>
+
+  {% if puede('alertas_gestionar') %}
+  <form class="card" method="post" action="{{ url_for('alertas.gestionar', aid=a.id) }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <h2>Resultado de la gestión</h2>
+    {% if a.gestionado_por %}<p class="small muted" style="margin-top:-6px">{{ a.estado }} · {{ a.gestionado_por }} · {{ a.gestionado_en[:16] }}{% if a.cajas_devueltas is not none %} · {{ a.cajas_devueltas|num }} cajas devueltas{% endif %}</p>{% endif %}
+    <label for="estado">Estado</label>
+    <select id="estado" name="estado">{% for e in estados %}<option {{ 'selected' if a.estado == e }}>{{ e }}</option>{% endfor %}</select>
+    <div id="parcial">
+      <label for="cajas_devueltas">Cajas devueltas</label>
+      <input type="number" id="cajas_devueltas" name="cajas_devueltas" min="0" step="any" max="{{ a.cajas_riesgo }}" value="{{ a.cajas_devueltas if a.cajas_devueltas is not none else '' }}">
+    </div>
+    <label for="resultado">¿Qué se hizo? <span class="opc">(opcional)</span></label>
+    <textarea id="resultado" name="resultado" maxlength="500" placeholder="Ej. BDR habló con el cliente, aceptó el producto">{{ a.resultado or '' }}</textarea>
+    <button class="btn bloque" style="margin-top:14px">Guardar resultado</button>
+  </form>
+  {% endif %}
+
+  <div class="acciones">
+    <a class="btn sec" href="{{ url_for('alertas.nueva') }}">Nueva alerta</a>
+    <a class="btn sec" href="{{ url_for('alertas.lista') }}">Ver alertas</a>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const b = document.getElementById('copiar');
+  b.addEventListener('click', async () => {
+    const t = document.getElementById('texto').textContent;
+    try { await navigator.clipboard.writeText(t); b.textContent = '¡Copiado!'; }
+    catch (e) { const r = document.createRange(); r.selectNodeContents(document.getElementById('texto')); const s = getSelection(); s.removeAllRanges(); s.addRange(r); b.textContent = 'Texto seleccionado: cópialo'; }
+    setTimeout(() => b.textContent = 'Copiar mensaje', 2500);
+  });
+  const est = document.getElementById('estado'), par = document.getElementById('parcial');
+  if (est) { const ver = () => par.style.display = est.value === 'Devolución parcial' ? '' : 'none'; est.addEventListener('change', ver); ver(); }
+})();
+</script>
+{% endblock %}

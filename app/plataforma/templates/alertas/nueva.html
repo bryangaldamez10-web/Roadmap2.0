@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block titulo %}Alerta de devolución{% endblock %}
+{% block contenido %}
+<div class="form-movil">
+  <div class="titulo"><div><h1>Alerta de posible devolución</h1><p class="muted">Escribe el código del cliente: el supervisor y el BDR se llenan solos.</p></div></div>
+  <form id="f" class="card" method="post" novalidate>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="latitud" id="latitud">
+    <input type="hidden" name="longitud" id="longitud">
+    {% if parada %}<input type="hidden" name="planificacion_id" value="{{ parada.id }}">
+    <div class="aviso" style="margin-bottom:14px">Desde la planificación del <b>{{ parada.fecha }}</b> · {{ parada.ruta_codigo }}<br>
+      Órdenes: <b class="mono">{{ parada.ordenes or '–' }}</b> · {{ parada.cajas|num }} cajas{% if parada.peso %} · {{ parada.peso|num }} kg{% endif %}</div>{% endif %}
+
+    <label for="cliente">Código de cliente</label>
+    <div class="acciones" style="flex-wrap:nowrap">
+      <input id="cliente" name="cliente" value="{{ form.get('cliente', '') }}" inputmode="numeric" autocomplete="off" placeholder="Ej. 13151328" required {{ 'readonly' if parada }}>
+      <button type="button" class="btn sec" id="buscar">Buscar</button>
+    </div>
+    <div id="clienteMsg" class="flash error oculto" style="margin:8px 0 0"></div>
+    <div id="ficha" class="elegido oculto" style="display:block;margin-top:10px">
+      <b id="fNombre"></b>
+      <div class="small" style="margin-top:6px;display:grid;grid-template-columns:auto 1fr;gap:2px 10px">
+        <span class="muted">Localidad</span><span id="fLocalidad"></span>
+        <span class="muted">Ruta</span><span id="fRuta"></span>
+        <span class="muted">Supervisor</span><span id="fSup"></span>
+        <span class="muted">BDR</span><span id="fBdr"></span>
+      </div>
+    </div>
+
+    {% if not ruta_fija and not parada %}
+    <label for="ruta">Ruta que entrega</label>
+    <select id="ruta" name="ruta"><option value="">La del cliente</option>
+      {% for r in rutas %}<option {{ 'selected' if form.get('ruta') == r }}>{{ r }}</option>{% endfor %}</select>
+    {% endif %}
+
+    <label for="tipo_pedido">Pedido | Cliente | Riesgo</label>
+    <div class="seg" id="tipoSeg" role="group" aria-label="Tipo de pedido">
+      {% for t in tipos %}<button type="button" data-v="{{ t }}">{{ t }}</button>{% endfor %}
+    </div>
+    <input type="hidden" name="tipo_pedido" id="tipo_pedido" value="{{ form.get('tipo_pedido', tipos[0]) }}">
+
+    <div class="fila2">
+      <div><label for="cajas">Cajas del pedido</label><input type="number" id="cajas" name="cajas" min="0" step="any" inputmode="decimal" value="{{ form.get('cajas', '') }}"></div>
+      <div><label for="cajas_riesgo">Cajas en riesgo</label><input type="number" id="cajas_riesgo" name="cajas_riesgo" min="0" step="any" inputmode="decimal" value="{{ form.get('cajas_riesgo', '') }}" required></div>
+    </div>
+    <label for="hectolitros">Hectolitros <span class="opc">(opcional)</span></label>
+    <input type="number" id="hectolitros" name="hectolitros" min="0" step="any" inputmode="decimal" value="{{ form.get('hectolitros', '') }}">
+
+    <label>¿Hubo comunicación con ventas?</label>
+    <div class="seg" id="comSeg" role="group" aria-label="Comunicación con ventas">
+      <button type="button" data-v="1">Sí</button><button type="button" data-v="0">No</button>
+    </div>
+    <input type="hidden" name="hubo_comunicacion" id="hubo_comunicacion" value="{{ form.get('hubo_comunicacion', '') }}">
+
+    <label for="motivo">Motivo</label>
+    <select id="motivo" name="motivo" required><option value="">Elegir motivo…</option>
+      {% for m in motivos %}<option {{ 'selected' if form.get('motivo') == m }}>{{ m }}</option>{% endfor %}</select>
+
+    <label for="comentario">Comentario</label>
+    <textarea id="comentario" name="comentario" maxlength="500" placeholder="Ej. Viene golden transparente y el cliente lo quiere en sixpack">{{ form.get('comentario', '') }}</textarea>
+
+    <p class="small muted" id="gps" style="margin:10px 0 0">📍 Obteniendo ubicación…</p>
+    <div id="msg" class="flash error oculto" style="margin-top:14px"></div>
+    <button class="btn bloque" id="btn" style="margin-top:16px">Crear alerta</button>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+(function () {
+  const $ = id => document.getElementById(id);
+  const urlCliente = "{{ url_for('alertas.buscar_cliente', codigo='__C__') }}";
+  const DESDE_PLAN = {{ 'true' if parada else 'false' }};
+  let clienteOk = DESDE_PLAN;
+
+  function seg(grupo, campo) {
+    const marcar = v => { $(campo).value = v; $(grupo).querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', b.dataset.v === v)); };
+    $(grupo).addEventListener('click', e => { const b = e.target.closest('button'); if (b) marcar(b.dataset.v); });
+    if ($(campo).value) marcar($(campo).value);
+  }
+  seg('tipoSeg', 'tipo_pedido'); seg('comSeg', 'hubo_comunicacion');
+
+  const persona = p => p && (p.codigo || p.nombre) ? [p.codigo, p.nombre].filter(Boolean).join(' – ') + (p.telefono ? ' · ' + p.telefono : '') : 'Sin asignar en la base';
+  async function buscar() {
+    const cod = $('cliente').value.trim();
+    clienteOk = false; $('ficha').classList.add('oculto'); $('clienteMsg').classList.add('oculto');
+    if (!cod) return;
+    $('buscar').disabled = true;
+    try {
+      const r = await fetch(urlCliente.replace('__C__', encodeURIComponent(cod)), { headers: { 'Accept': 'application/json' } });
+      const d = await r.json();
+      if (!d.ok) throw new Error(d.error);
+      $('fNombre').textContent = d.codigo + ' – ' + d.nombre + (d.inactivo ? ' (inactivo)' : '');
+      $('fLocalidad').textContent = d.localidad || '–';
+      $('fRuta').textContent = d.ruta || '–';
+      $('fSup').textContent = persona(d.supervisor);
+      $('fBdr').textContent = persona(d.bdr);
+      $('ficha').classList.remove('oculto'); clienteOk = true;
+    } catch (err) {
+      if (DESDE_PLAN) { clienteOk = true; $('clienteMsg').className = 'flash info'; $('clienteMsg').style.margin = '8px 0 0';
+        $('clienteMsg').textContent = 'Este cliente no está en la base de clientes; se usarán los datos de la planificación.'; return; }
+      $('clienteMsg').textContent = err.message || 'No se pudo buscar el cliente.'; $('clienteMsg').classList.remove('oculto');
+    } finally { $('buscar').disabled = false; }
+  }
+  $('buscar').addEventListener('click', buscar);
+  $('cliente').addEventListener('change', buscar);
+  $('cliente').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); buscar(); } });
+  if ($('cliente').value) buscar();
+
+  if (navigator.geolocation) {
+    navigator.geolocation.getCurrentPosition(p => {
+      $('latitud').value = p.coords.latitude; $('longitud').value = p.coords.longitude;
+      $('gps').textContent = '📍 Ubicación incluida (precisión ±' + Math.round(p.coords.accuracy) + ' m)';
+    }, () => { $('gps').textContent = '📍 Sin ubicación: activa el GPS y permite el acceso si quieres incluirla.'; },
+    { enableHighAccuracy: true, timeout: 15000, maximumAge: 60000 });
+  } else { $('gps').textContent = '📍 Este dispositivo no comparte ubicación.'; }
+
+  $('f').addEventListener('submit', e => {
+    const faltan = [];
+    if (!clienteOk) faltan.push('un cliente válido');
+    if (!(Number($('cajas_riesgo').value) > 0)) faltan.push('las cajas en riesgo');
+    if (!$('hubo_comunicacion').value) faltan.push('si hubo comunicación con ventas');
+    if (!$('motivo').value) faltan.push('el motivo');
+    if (faltan.length) { e.preventDefault(); $('msg').textContent = 'Completa ' + faltan.join(', ') + '.'; $('msg').classList.remove('oculto'); return; }
+    $('btn').disabled = true; $('btn').textContent = 'Creando…';
+  });
+})();
+</script>
+{% endblock %}

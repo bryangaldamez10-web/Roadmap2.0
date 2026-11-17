@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block titulo %}Alertas de devolución{% endblock %}
+{% block contenido %}
+{% set gestor = puede('alertas_gestionar') %}
+<div class="titulo">
+  <div><h1>Alertas de devolución</h1><p class="muted">Del {{ f.desde }} al {{ f.hasta }}{% if not gestor %} · ruta {{ usuario.ruta_codigo }}{% endif %}</p></div>
+  <a class="btn" href="{{ url_for('alertas.nueva') }}">+ Nueva alerta</a>
+</div>
+
+<form class="card filtros" method="get">
+  <div><label for="desde">Desde</label><input type="date" id="desde" name="desde" value="{{ f.desde }}"></div>
+  <div><label for="hasta">Hasta</label><input type="date" id="hasta" name="hasta" value="{{ f.hasta }}"></div>
+  {% if gestor %}<div><label for="ruta">Ruta</label><select id="ruta" name="ruta"><option value="">Todas</option>
+    {% for r in rutas %}<option {{ 'selected' if f.ruta == r }}>{{ r }}</option>{% endfor %}</select></div>{% endif %}
+  <div><label for="estado">Estado</label><select id="estado" name="estado"><option value="">Todos</option>
+    {% for e in estados %}<option {{ 'selected' if f.estado == e }}>{{ e }}</option>{% endfor %}</select></div>
+  <div><button class="btn" style="width:100%">Filtrar</button></div>
+</form>
+
+<div class="kpis">
+  <div class="kpi"><b>{{ kpi.alertas }}</b><span>Alertas</span></div>
+  <div class="kpi"><b>{{ kpi.riesgo|num }}</b><span>Cajas en riesgo</span></div>
+  <div class="kpi {{ 'destacado' if kpi.abiertas }}"><b>{{ kpi.abiertas }}</b><span>Abiertas por gestionar</span></div>
+  <div class="kpi"><b>{{ kpi.salvadas|num }}</b><span>Cajas que no se devolvieron{% if kpi.efectividad is not none %} · {{ kpi.efectividad|num(0) }}%{% endif %}</span></div>
+</div>
+
+{% if por_motivo %}
+<div class="card"><h2>Cajas en riesgo por motivo</h2>
+  {% set maximo = (por_motivo|map(attribute='cajas')|max) or 1 %}
+  {% for d in por_motivo %}<div class="barra"><span>{{ d.nombre }}</span><i style="width:{{ [d.cajas / maximo * 100, 2]|max }}%"></i><em>{{ d.cajas|num }}</em></div>{% endfor %}
+</div>
+{% endif %}
+
+{% for a in filas %}
+<a class="reg" href="{{ url_for('alertas.detalle', aid=a.id) }}" style="display:block;text-decoration:none;color:inherit">
+  <div class="reg-top"><span class="mono small"><b>{{ a.folio }}</b></span>
+    <span class="pill {{ 'Pendiente' if a.estado == 'Abierta' else ('Validado' if a.estado == 'Evitada' else 'Rechazado') }}">{{ a.estado }}</span></div>
+  <div class="reg-det"><b>{{ a.cliente_codigo }} – {{ a.cliente_nombre }}</b> · {{ a.cajas_riesgo|num }} cajas en riesgo · {{ a.motivo }}</div>
+  <div class="meta">{{ a.ruta_codigo }} · {{ a.creado[:16] }} · BDR {{ nombres.get(a.bdr_codigo, a.bdr_codigo) or '–' }} · Sup. {{ nombres.get(a.supervisor_codigo, a.supervisor_codigo) or '–' }}
+    · Comunicación con ventas: {{ 'Sí' if a.hubo_comunicacion else 'No' }}</div>
+  {% if a.comentario %}<div class="meta">“{{ a.comentario }}”</div>{% endif %}
+  {% if a.resultado %}<div class="meta">Gestión: {{ a.resultado }}</div>{% endif %}
+</a>
+{% else %}
+<div class="card muted" style="text-align:center;padding:32px">No hay alertas con estos filtros.</div>
+{% endfor %}
+{% endblock %}

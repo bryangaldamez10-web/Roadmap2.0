@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<div class="titulo"><div><h1>Maestros</h1><p class="muted">{{ titulo }} {{ descripcion }}</p></div></div>
+{% with activo='motivos' %}{% include "maestros/_tabs.html" %}{% endwith %}
+<div class="acciones" style="margin-bottom:12px">
+  {% for k, v in clases.items() %}<a class="btn chico {{ '' if k == clase else 'sec' }}" href="{{ url_for('maestros.motivos', clase=k) }}">{{ v[1] }}</a>{% endfor %}
+</div>
+<form class="card acciones" method="post" style="max-width:720px">
+  <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+  <input type="hidden" name="accion" value="agregar">
+  <input name="nombre" placeholder="Nuevo motivo" maxlength="120" style="flex:1 1 260px" required>
+  <button class="btn">Agregar motivo</button>
+</form>
+<div class="tabla-wrap" style="max-width:720px">
+<table>
+  <thead><tr><th>Motivo</th><th>Estado</th><th></th></tr></thead>
+  <tbody>
+  {% for m in motivos %}
+  <tr class="{{ 'inactivo' if not m.activo }}">
+    <td>{{ m.nombre }}</td>
+    <td>{% if m.activo %}<span class="pill Validado">Activo</span>{% else %}<span class="pill gris">Inactivo</span>{% endif %}</td>
+    <td style="text-align:right">
+      <form method="post" style="margin:0">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="hidden" name="accion" value="alternar"><input type="hidden" name="id" value="{{ m.id }}">
+        <button class="btn sec chico">{{ 'Desactivar' if m.activo else 'Activar' }}</button>
+      </form>
+    </td>
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+<p class="small muted">Los motivos desactivados dejan de aparecer en los formularios, pero se conservan en los registros anteriores.</p>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block contenido %}
+<div class="titulo"><div><h1>Hola, {{ usuario.nombre.split(' ')[0] }}</h1><p class="muted">¿Qué necesitas hacer hoy?</p></div></div>
+
+{% if r.hoy is defined %}
+<div class="kpis">
+  <div class="kpi"><b>{{ r.hoy }}</b><span>Averías registradas hoy</span></div>
+  <div class="kpi"><b>{{ r.cajas_hoy|num }}</b><span>Cajas equivalentes hoy</span></div>
+  <a class="kpi destacado" href="{{ url_for('averias.lista', estado='Pendiente') }}" style="text-decoration:none;color:inherit"><b>{{ r.pendientes }}</b><span>Pendientes de validar →</span></a>
+</div>
+{% elif r.mias_hoy is defined %}
+<div class="kpis"><div class="kpi"><b>{{ r.mias_hoy }}</b><span>Averías de tu ruta registradas hoy</span></div></div>
+{% endif %}
+
+<div class="modulos">
+  {% if usuario.rol == 'ruta' %}
+  <a class="modulo" href="{{ url_for('planificacion.mi_ruta') }}" style="border-color:var(--acc)"><b>Mi ruta de hoy</b><span>Clientes planificados, cajas, mapa y botón para alertar devolución.</span></a>
+  {% elif puede('alertas_gestionar') %}
+  <a class="modulo" href="{{ url_for('planificacion.resumen') }}"><b>Planificación del día</b><span>Todas las rutas, cajas, peso, alertas y mapa por ruta.</span></a>
+  {% endif %}
+  {% if puede('averias_registrar') %}
+  <a class="modulo" href="{{ url_for('averias.nueva') }}"><b>Registrar avería</b><span>SKU, cajas o unidades, motivo y foto.</span></a>
+  {% endif %}
+  {% if puede('averias_validar') %}
+  <a class="modulo" href="{{ url_for('averias.lista') }}"><b>Validar averías</b><span>Revisar, validar o rechazar y exportar a Excel.</span></a>
+  {% elif puede('averias_registrar') %}
+  <a class="modulo" href="{{ url_for('averias.lista') }}"><b>Mis averías</b><span>Lo que registró tu ruta y su estado.</span></a>
+  {% endif %}
+  {% if puede('maestros') %}
+  <a class="modulo" href="{{ url_for('maestros.lista', tipo='clientes') }}"><b>Maestros</b><span>{{ r.clientes }} clientes · {{ r.rutas }} rutas · {{ r.skus }} SKUs</span></a>
+  {% endif %}
+  {% if puede('cargas') %}
+  <a class="modulo" href="{{ url_for('cargas.inicio') }}"><b>Cargar datos</b><span>Subir Excel de clientes, rutas, vendedores y SKUs.</span></a>
+  {% endif %}
+  {% if puede('alertas_registrar') %}
+  <a class="modulo" href="{{ url_for('alertas.nueva') }}"><b>Alerta de devolución</b><span>Código de cliente → supervisor y BDR, y envío a WhatsApp.</span></a>
+  {% endif %}
+  {% if puede('alertas_gestionar') %}
+  <a class="modulo" href="{{ url_for('alertas.lista') }}"><b>Seguimiento de alertas</b><span>{{ r.alertas_abiertas }} abiertas · registrar si se evitó la devolución.</span></a>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titulo %}Bitácora{% endblock %}
+{% block contenido %}
+<div class="titulo"><div><h1>Bitácora</h1><p class="muted">Quién hizo qué y cuándo (últimos 300 eventos)</p></div></div>
+<form class="card filtros" method="get">
+  <div style="grid-column:span 2"><label for="q">Buscar</label><input id="q" name="q" value="{{ q }}" placeholder="Usuario, acción o detalle"></div>
+  <div><button class="btn" style="width:100%">Buscar</button></div>
+</form>
+<div class="tabla-wrap">
+<table>
+  <thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead>
+  <tbody>
+  {% for b in filas %}<tr><td style="white-space:nowrap">{{ b.creado[:16] }}</td><td class="mono">{{ b.usuario }}</td><td>{{ b.accion }}</td><td class="small">{{ b.detalle }}</td></tr>
+  {% else %}<tr><td colspan="4" class="muted" style="text-align:center;padding:24px">Sin eventos.</td></tr>{% endfor %}
+  </tbody>
+</table>
+</div>
+{% endblock %}

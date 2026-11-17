@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block titulo %}{{ ruta.codigo }} · {{ fecha }}{% endblock %}
+{% block contenido %}
+{% set es_conductor = usuario.rol == 'ruta' %}
+<div class="titulo">
+  <div><h1>{{ 'Mi ruta' if es_conductor else 'Ruta' }} {{ ruta.codigo }}</h1>
+    <p class="muted">{{ fecha }}{% if ruta.conductor_nombre %} · {{ ruta.conductor_nombre }}{% endif %}{% if tot.vehiculos %} · {{ tot.vehiculos|join(', ') }}{% endif %}</p></div>
+  <div class="acciones">
+    <a class="btn sec chico" href="{{ url_for('planificacion.ruta', ruta=ruta.codigo, fecha=ayer) }}">←</a>
+    <form method="get" style="margin:0"><input type="date" name="fecha" value="{{ fecha }}" onchange="this.form.submit()" style="padding:7px 10px;font-size:14px"></form>
+    <a class="btn sec chico" href="{{ url_for('planificacion.ruta', ruta=ruta.codigo, fecha=manana) }}">→</a>
+    {% if not es_conductor %}<a class="btn sec chico" href="{{ url_for('planificacion.resumen', fecha=fecha) }}">Todas las rutas</a>{% endif %}
+  </div>
+</div>
+
+{% if not filas %}
+<div class="card muted" style="text-align:center;padding:32px">No hay clientes planificados para esta ruta en este día.</div>
+{% else %}
+<div class="kpis">
+  <div class="kpi"><b>{{ tot.clientes }}</b><span>Clientes</span></div>
+  <div class="kpi"><b>{{ tot.cajas|num(0) }}</b><span>Cajas</span></div>
+  <div class="kpi"><b>{{ tot.peso|num(0) }}</b><span>Peso (kg){% if tot.hl %} · {{ tot.hl|num(2) }} HL{% endif %}</span></div>
+  <div class="kpi"><b>{{ (tot.inicio or '')[11:16] }}–{{ (tot.fin or '')[11:16] }}</b><span>Horario planificado</span></div>
+</div>
+
+<div class="card" style="padding:0;overflow:hidden">
+  <div id="mapa" style="height:340px;background:var(--soft)"></div>
+  <p class="small muted" id="mapaInfo" style="margin:0;padding:8px 14px">Los clientes sin coordenadas en la base de clientes no aparecen en el mapa.</p>
+</div>
+
+{% for p in filas %}
+<div class="reg parada">
+  <div class="reg-top">
+    <span><span class="num-parada">{{ p.secuencia }}</span> <b>{{ p.nombre_negocio or p.cliente_nombre }}</b></span>
+    <span class="mono small">{{ (p.llegada or '')[11:16] }}{% if p.salida %}–{{ p.salida[11:16] }}{% endif %}</span>
+  </div>
+  <div class="reg-det"><span class="mono">{{ p.cliente_codigo }}</span> · <b>{{ p.cajas|num }} cajas</b>{% if p.peso %} · {{ p.peso|num }} kg{% endif %}{% if p.hectolitros %} · {{ p.hectolitros|num(3) }} HL{% endif %}</div>
+  <div class="meta">{{ p.direccion }}{% if p.ciudad %}, {{ p.ciudad }}{% endif %}</div>
+  {% if p.ordenes %}<div class="meta">Órdenes: <span class="mono">{{ p.ordenes }}</span></div>{% endif %}
+  {% for a in p.alertas %}<div style="margin-top:6px"><a class="pill {{ 'Pendiente' if a.estado == 'Abierta' else ('Validado' if a.estado == 'Evitada' else 'Rechazado') }}" href="{{ url_for('alertas.detalle', aid=a.id) }}" style="text-decoration:none">Alerta {{ a.folio }} · {{ a.estado }}</a></div>{% endfor %}
+  <div class="acciones" style="margin-top:10px">
+    <a class="btn no chico" href="{{ url_for('alertas.nueva', parada=p.id) }}">Alertar devolución</a>
+    <a class="btn sec chico" href="{{ p.maps }}" target="_blank" rel="noopener">Cómo llegar</a>
+  </div>
+</div>
+{% endfor %}
+{% endif %}
+{% endblock %}
+{% block scripts %}
+{% if filas %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script id="puntos" type="application/json">{{ puntos|safe }}</script>
+<script>
+(function () {
+  const puntos = JSON.parse(document.getElementById('puntos').textContent);
+  const info = document.getElementById('mapaInfo');
+  if (!window.L) { info.textContent = 'No se pudo cargar el mapa (revisa la conexión a internet).'; return; }
+  if (!puntos.length) { document.getElementById('mapa').style.display = 'none'; info.textContent = 'Ningún cliente de esta ruta tiene coordenadas en la base de clientes; carga la base con latitud y longitud para ver el mapa.'; return; }
+  const mapa = L.map('mapa', { scrollWheelZoom: false });
+  // Mapa base de OpenStreetMap. Su política exige enviar el origen de la página (Referer) y dar crédito a sus colaboradores.
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    referrerPolicy: 'strict-origin-when-cross-origin',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors'
+  }).addTo(mapa);
+  const linea = [];
+  puntos.forEach(p => {
+    const icono = L.divIcon({ className: '', html: '<div class="pin' + (p.a ? ' pin-alerta' : '') + '">' + p.n + '</div>', iconSize: [28, 28], iconAnchor: [14, 14] });
+    const m = L.marker([p.lat, p.lng], { icon: icono }).addTo(mapa);
+    const div = document.createElement('div');
+    div.textContent = p.t + ' · ' + p.c + ' cajas' + (p.h ? ' · ' + p.h : '');
+    m.bindPopup(div);
+    linea.push([p.lat, p.lng]);
+  });
+  L.polyline(linea, { color: '#b8860b', weight: 3, opacity: .7, dashArray: '6 6' }).addTo(mapa);
+  mapa.fitBounds(L.latLngBounds(linea).pad(0.15));
+  const sin = {{ filas|length }} - puntos.length;
+  info.textContent = sin ? sin + ' cliente(s) sin coordenadas no aparecen en el mapa.' : 'Orden de visita según la planificación.';
+})();
+</script>
+{% endif %}
+{% endblock %}

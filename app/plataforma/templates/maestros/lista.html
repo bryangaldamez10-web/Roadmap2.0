@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block titulo %}{{ ent.titulo }}{% endblock %}
+{% block contenido %}
+<div class="titulo">
+  <div><h1>Maestros</h1><p class="muted">{{ total }} {{ ent.titulo|lower }} {{ 'activos' if estado == 'activos' else ('inactivos' if estado == 'inactivos' else 'en total') }}</p></div>
+  {% if puede('cargas') %}<a class="btn sec" href="{{ url_for('cargas.inicio', tipo=tipo) }}">Cargar {{ ent.titulo|lower }} desde Excel</a>{% endif %}
+</div>
+{% with activo=tipo %}{% include "maestros/_tabs.html" %}{% endwith %}
+
+<form class="card filtros" method="get">
+  <div style="grid-column:span 2"><label for="q">Buscar</label><input id="q" name="q" value="{{ q }}" placeholder="Código o nombre…"></div>
+  {% if tipo == 'clientes' %}
+  <div><label for="ruta">Ruta</label><select id="ruta" name="ruta"><option value="">Todas</option>
+    {% for r in rutas %}<option {{ 'selected' if ruta == r.codigo }}>{{ r.codigo }}</option>{% endfor %}</select></div>
+  {% endif %}
+  <div><label for="estado">Estado</label><select id="estado" name="estado">
+    <option value="activos" {{ 'selected' if estado == 'activos' }}>Activos</option>
+    <option value="inactivos" {{ 'selected' if estado == 'inactivos' }}>Inactivos</option>
+    <option value="todos" {{ 'selected' if estado == 'todos' }}>Todos</option></select></div>
+  <div><button class="btn" style="width:100%">Buscar</button></div>
+</form>
+
+<div class="tabla-wrap">
+<table>
+  <thead><tr>{% for c in cols %}<th class="{{ 'num' if c.tipo in ('entero', 'latitud', 'longitud') }}">{{ c.titulo }}</th>{% endfor %}<th>Estado</th></tr></thead>
+  <tbody>
+  {% for f in filas %}
+  <tr class="{{ 'inactivo' if not f.activo }}">
+    {% for c in cols %}
+    <td class="{{ 'num' if c.tipo in ('entero', 'latitud', 'longitud') }}{{ ' mono' if c.tipo == 'codigo' }}">
+      {%- set v = f[c.campo] -%}
+      {%- if v is none or v == '' -%}<span class="muted">–</span>
+      {%- elif c.tipo in ('latitud', 'longitud') -%}{{ '%.5f'|format(v) }}
+      {%- else -%}{{ v }}{% if c.campo in ('bdr_codigo', 'supervisor_codigo', 'jefe_codigo') and nombres.get(v) %}<div class="small muted" style="font-family:system-ui,-apple-system,Segoe UI,sans-serif">{{ nombres[v] }}</div>{% endif %}
+      {%- endif -%}
+    </td>
+    {% endfor %}
+    <td>{% if f.activo %}<span class="pill Validado">Activo</span>{% else %}<span class="pill gris">Inactivo</span>{% endif %}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="{{ cols|length + 1 }}" class="muted" style="text-align:center;padding:28px">Sin resultados.{% if puede('cargas') and not q %} Carga el Excel de {{ ent.titulo|lower }} para empezar.{% endif %}</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+{% if paginas > 1 %}
+<div class="paginas">
+  {% if pagina > 1 %}<a class="btn sec chico" href="{{ url_for('maestros.lista', tipo=tipo, q=q, estado=estado, ruta=ruta, p=pagina-1) }}">← Anterior</a>{% endif %}
+  <span class="muted">Página {{ pagina }} de {{ paginas }}</span>
+  {% if pagina < paginas %}<a class="btn sec chico" href="{{ url_for('maestros.lista', tipo=tipo, q=q, estado=estado, ruta=ruta, p=pagina+1) }}">Siguiente →</a>{% endif %}
+</div>
+{% endif %}
+{% endblock %}

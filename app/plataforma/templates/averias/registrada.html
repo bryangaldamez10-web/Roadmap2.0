@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block titulo %}Avería registrada{% endblock %}
+{% block contenido %}
+<div class="form-movil">
+  <div class="card exito">
+    <div class="check">✓</div>
+    <div>Avería registrada</div>
+    <div class="folio">{{ a.folio }}</div>
+    <div class="aviso" style="text-align:left">
+      <b>{{ a.ruta_codigo }}</b> · {{ a.cantidad|num }} {{ a.unidad|lower }}{% if a.cajas_equiv and a.unidad != 'Cajas' %} (≈ {{ a.cajas_equiv|num(2) }} cajas){% endif %}<br>
+      {% if a.codsap %}{{ a.codsap }} – {% endif %}{{ a.sku_nombre }}<br>
+      {{ a.motivo }} · {{ fotos|length }} foto{{ '' if fotos|length == 1 else 's' }} de evidencia
+    </div>
+    <div class="miniaturas" style="justify-content:center">{% for fid in fotos %}<img src="{{ url_for('averias.foto', fid=fid) }}" alt="Evidencia {{ loop.index }}" style="width:72px;height:72px;object-fit:cover;border-radius:8px">{% endfor %}</div>
+    <div class="acciones" style="justify-content:center;margin-top:16px">
+      <a class="btn" href="{{ url_for('averias.nueva') }}">Registrar otra</a>
+      <a class="btn sec" href="{{ url_for('averias.lista') }}">Ver registros</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

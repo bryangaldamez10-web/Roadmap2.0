@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block titulo %}Contraseña temporal{% endblock %}
+{% block contenido %}
+<div class="form-movil">
+  <div class="card">
+    <h1>Contraseña temporal</h1>
+    <p class="muted">Entrégasela a <b>{{ nombre }}</b>. Al entrar, el sistema le pedirá crear su propia contraseña. No se volverá a mostrar.</p>
+    <div class="aviso" style="font-size:16px">Usuario: <b class="mono">{{ usuario }}</b><br>Contraseña: <b class="mono" style="font-size:20px">{{ clave }}</b></div>
+    <a class="btn" style="margin-top:16px" href="{{ url_for('usuarios.lista') }}">Listo</a>
+  </div>
+</div>
+{% endblock %}

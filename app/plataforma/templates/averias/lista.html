@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block titulo %}Averías{% endblock %}
+{% block contenido %}
+{% set validador = puede('averias_validar') %}
+<div class="titulo">
+  <div><h1>{{ 'Validación de averías' if validador else 'Averías de mi ruta' }}</h1>
+    <p class="muted">Del {{ f.desde }} al {{ f.hasta }}{% if not validador %} · ruta {{ usuario.ruta_codigo }}{% endif %}</p></div>
+  <div class="acciones">
+    {% if puede('averias_registrar') %}<a class="btn sec" href="{{ url_for('averias.nueva') }}">+ Registrar</a>{% endif %}
+    {% if validador %}<a class="btn sec" href="{{ url_for('averias.exportar', **f) }}">Exportar a Excel</a>{% endif %}
+  </div>
+</div>
+
+<form class="card filtros" method="get">
+  <div><label for="desde">Desde</label><input type="date" id="desde" name="desde" value="{{ f.desde }}"></div>
+  <div><label for="hasta">Hasta</label><input type="date" id="hasta" name="hasta" value="{{ f.hasta }}"></div>
+  {% if validador %}
+  <div><label for="ruta">Ruta</label><select id="ruta" name="ruta"><option value="">Todas</option>
+    {% for r in rutas %}<option {{ 'selected' if f.ruta == r }}>{{ r }}</option>{% endfor %}</select></div>
+  {% endif %}
+  <div><label for="estado">Estado</label><select id="estado" name="estado"><option value="">Todos</option>
+    {% for e in estados %}<option {{ 'selected' if f.estado == e }}>{{ e }}</option>{% endfor %}</select></div>
+  <div><label for="motivo">Motivo</label><select id="motivo" name="motivo"><option value="">Todos</option>
+    {% for m in motivos %}<option {{ 'selected' if f.motivo == m }}>{{ m }}</option>{% endfor %}</select></div>
+  <div><button class="btn" style="width:100%">Filtrar</button></div>
+</form>
+
+<div class="kpis">
+  <div class="kpi"><b>{{ kpi.registros }}</b><span>Registros</span></div>
+  <div class="kpi"><b>{{ kpi.cajas|num(1) }}</b><span>Cajas equivalentes</span></div>
+  <div class="kpi {{ 'destacado' if kpi.pendientes }}"><b>{{ kpi.pendientes }}</b><span>Pendientes de validar</span></div>
+  <div class="kpi"><b>{{ kpi.validadas|num(1) }}</b><span>Cajas equivalentes validadas</span></div>
+</div>
+
+{% if filas %}
+<div class="grid g2" style="margin-bottom:14px">
+  {% for titulo, datos in [('Cajas equivalentes por motivo', por_motivo), ('Cajas equivalentes por ruta', por_ruta)] %}
+  {% if validador or loop.first %}
+  <div class="card" style="margin:0"><h2>{{ titulo }}</h2>
+    {% set maximo = (datos|map(attribute='cajas')|max) or 1 %}
+    {% for d in datos %}<div class="barra"><span>{{ d.nombre }}</span><i style="width:{{ [d.cajas / maximo * 100, 2]|max }}%"></i><em>{{ d.cajas|num(1) }}</em></div>{% endfor %}
+  </div>
+  {% endif %}
+  {% endfor %}
+</div>
+{% endif %}
+
+{% for a in filas %}
+<div class="reg">
+  <div class="reg-top"><span class="mono small"><b>{{ a.folio }}</b></span><span class="pill {{ a.estado }}">{{ a.estado }}</span></div>
+  <div class="reg-det"><b>{{ a.ruta_codigo }}</b> · {{ a.cantidad|num }} {{ a.unidad|lower }} de
+    <b>{% if a.codsap %}{{ a.codsap }} – {% endif %}{{ a.sku_nombre }}</b>
+    {% if not a.codsap %}<span class="pill Pendiente">SKU no listado</span>{% endif %}
+    {% if a.cajas_equiv and a.unidad != 'Cajas' %}<span class="muted small">(≈ {{ a.cajas_equiv|num(2) }} cajas)</span>{% endif %}
+    · {{ a.motivo }}</div>
+  <div class="meta">Jornada {{ a.fecha_jornada }} · reportó {{ a.reportado_por }} · {{ a.creado[:16] }}
+</div>
+  {% if fotos.get(a.id) %}
+  <div class="miniaturas">{% for fid in fotos[a.id] %}<a href="{{ url_for('averias.foto', fid=fid) }}" target="_blank" rel="noopener" title="Ver foto {{ loop.index }}"><img src="{{ url_for('averias.foto', fid=fid) }}" alt="Evidencia {{ loop.index }} de {{ a.folio }}" loading="lazy"></a>{% endfor %}</div>
+  {% else %}<div style="margin-top:6px"><span class="pill Rechazado">Sin foto de evidencia</span></div>{% endif %}
+  {% if a.comentario %}<div class="meta">“{{ a.comentario }}”</div>{% endif %}
+  {% if a.validado_por %}<div class="meta">{{ a.estado }} por {{ a.validado_por }} el {{ a.validado_en[:16] }}{% if a.observacion %} — {{ a.observacion }}{% endif %}</div>{% endif %}
+  {% if validador %}
+  <form method="post" action="{{ url_for('averias.cambiar_estado', aid=a.id) }}">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="volver" value="{{ request.full_path }}">
+    <input name="observacion" placeholder="Observación (obligatoria al rechazar)" value="{{ a.observacion or '' }}" maxlength="500">
+    {% if a.estado != 'Validado' and a.n_fotos %}<button class="btn ok chico" name="estado" value="Validado">Validar</button>{% endif %}
+    {% if a.estado != 'Rechazado' %}<button class="btn no chico" name="estado" value="Rechazado">Rechazar</button>{% endif %}
+    {% if a.estado != 'Pendiente' %}<button class="btn sec chico" name="estado" value="Pendiente">Volver a pendiente</button>{% endif %}
+  </form>
+  {% endif %}
+</div>
+{% else %}
+<div class="card muted" style="text-align:center;padding:32px">No hay averías con estos filtros.</div>
+{% endfor %}
+{% if filas|length == 300 %}<p class="muted small">Se muestran las 300 más recientes. Usa los filtros o exporta a Excel para ver todo.</p>{% endif %}
+{% endblock %}

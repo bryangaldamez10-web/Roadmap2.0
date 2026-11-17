@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% block titulo %}Registrar avería{% endblock %}
+{% block contenido %}
+<div class="form-movil">
+  <div class="titulo"><div><h1>Registrar avería</h1><p class="muted">Se guarda con tu usuario y queda pendiente de validación.</p></div></div>
+  <form id="f" class="card" method="post" novalidate>
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <input type="hidden" name="sku_id" id="sku_id" value="{{ form.get('sku_id', '') }}">
+    <input type="hidden" name="unidad" id="unidad" value="{{ form.get('unidad', unidades[0]) }}">
+    <input type="hidden" name="foto_b64" id="foto_b64">
+
+    <div class="fila2">
+      <div><label for="fecha_jornada">Fecha</label>
+        <input type="date" id="fecha_jornada" name="fecha_jornada" value="{{ form.get('fecha_jornada', hoy) }}" max="{{ hoy }}" required></div>
+      <div><label for="ruta">Ruta</label>
+        {% if ruta_fija %}<input id="ruta" value="{{ ruta_fija }}" disabled>
+        {% else %}<select id="ruta" name="ruta" required>
+          <option value="">Elegir…</option>
+          {% for r in rutas %}<option {{ 'selected' if form.get('ruta') == r }}>{{ r }}</option>{% endfor %}
+        </select>{% endif %}</div>
+    </div>
+
+    <label for="reportado_por">Reportado por</label>
+    <input id="reportado_por" name="reportado_por" value="{{ form.get('reportado_por', usuario.nombre) }}" required>
+
+    <label for="skuBtn">SKU averiado</label>
+    <div class="combo" id="combo">
+      <button type="button" class="combo-btn" id="skuBtn" aria-haspopup="listbox" aria-expanded="false">
+        <span id="skuTexto" class="combo-placeholder">Selecciona el SKU…</span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="combo-detalle oculto" id="skuDetalle"></div>
+      <div class="combo-panel oculto" id="panel">
+        <div class="buscador">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input id="buscaSku" type="search" placeholder="Escribe nombre o CODSAP para filtrar…" autocomplete="off" enterkeyhint="search">
+        </div>
+        <div class="lista-sku" id="listaSku" role="listbox" aria-label="SKUs"></div>
+        <button type="button" class="link" id="noListado" style="padding:10px 12px">¿No está en la lista? Escribirlo a mano</button>
+      </div>
+    </div>
+    <div id="zonaManual" class="oculto" style="margin-top:8px">
+      <input id="sku_manual" name="sku_manual" value="{{ form.get('sku_manual', '') }}" placeholder="Nombre del producto tal como aparece en la caja">
+      <button type="button" class="link" id="volverLista">← Volver a la lista de SKUs</button>
+    </div>
+
+    <label>¿Qué vas a reportar?</label>
+    <div class="seg" id="unidadSeg" role="group" aria-label="Unidad">
+      {% for u in unidades %}<button type="button" data-u="{{ u }}">{{ u }}</button>{% endfor %}
+    </div>
+
+    <label for="cantidad">Cantidad</label>
+    <input type="number" id="cantidad" name="cantidad" min="1" step="1" inputmode="numeric" value="{{ form.get('cantidad', '') }}" required>
+    <div class="equiv" id="equiv"></div>
+
+    <label for="motivo">Motivo de la avería</label>
+    <select id="motivo" name="motivo" required>
+      <option value="">Elegir motivo…</option>
+      {% for m in motivos %}<option {{ 'selected' if form.get('motivo') == m }}>{{ m }}</option>{% endfor %}
+    </select>
+
+    <label for="comentario">Comentario <span class="opc">(opcional)</span></label>
+    <textarea id="comentario" name="comentario" maxlength="500" placeholder="¿Qué pasó? Cliente, punto de la ruta, etc.">{{ form.get('comentario', '') }}</textarea>
+
+    <label>Fotos de evidencia <span class="opc">(obligatoria al menos 1, máximo 3)</span></label>
+    <div class="fotos" id="fotos">
+      <label class="foto-add" for="foto" id="fotoAdd">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+        <span>Tomar foto</span>
+      </label>
+    </div>
+    <input type="file" id="foto" accept="image/*" capture="environment" class="oculto">
+    <p class="small muted" style="margin:6px 0 0">Que se vea el producto dañado y, si es posible, la etiqueta o el código.</p>
+    <div id="fotosInputs"></div>
+
+    <div id="msg" class="flash error oculto" style="margin-top:14px"></div>
+    <button class="btn bloque" id="btn" style="margin-top:18px">Registrar avería</button>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script id="skus-data" type="application/json">{{ skus_json|safe }}</script>
+<script src="{{ url_for('static', filename='averias.js') }}"></script>
+{% endblock %}

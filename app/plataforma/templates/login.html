@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block titulo %}Iniciar sesión{% endblock %}
+{% block cuerpo %}
+<div class="login-wrap">
+  <form class="login" method="post" autocomplete="on">
+    <div class="marca-login"><small>BU CAM | La Constancia</small></div>
+    <h1>Plataforma de Distribución</h1>
+    {% with mensajes = get_flashed_messages(with_categories=true) %}
+      {% for cat, msg in mensajes %}<div class="flash {{ cat }}">{{ msg }}</div>{% endfor %}
+    {% endwith %}
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    <label for="usuario">Usuario</label>
+    <input id="usuario" name="usuario" value="{{ usuario_form or '' }}" autocapitalize="none" autocomplete="username" required autofocus>
+    <label for="clave">Contraseña</label>
+    <input id="clave" name="clave" type="password" autocomplete="current-password" required>
+    <button class="btn bloque" style="margin-top:18px">Entrar</button>
+    <p class="small muted" style="margin:14px 0 0">¿Olvidaste tu contraseña? Pide al administrador que la restablezca.</p>
+  </form>
+</div>
+{% endblock %}

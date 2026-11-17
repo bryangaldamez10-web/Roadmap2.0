@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block titulo %}{{ titulo }}{% endblock %}
+{% block contenido %}
+<div class="card" style="max-width:520px;margin:40px auto;text-align:center">
+  <p class="muted mono" style="margin:0">Error {{ codigo }}</p>
+  <h1 style="margin:6px 0 10px">{{ titulo }}</h1>
+  {% if codigo == 403 %}<p class="muted">Tu rol no tiene acceso a esta sección.</p>
+  {% elif codigo == 413 %}<p class="muted">El archivo supera el límite de 15 MB.</p>
+  {% elif detalle %}<p class="muted">{{ detalle }}</p>{% endif %}
+  <a class="btn sec" href="{{ url_for('inicio.inicio') if usuario else url_for('auth.login') }}">Volver al inicio</a>
+</div>
+{% endblock %}

@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<style>
+  :root { --bg:#f5f3ee; --card:#fff; --ink:#1c1b19; --muted:#6b6862; --line:#e3dfd6; --acc:#d4a017;
+          --ok:#1f7a4d; --ok-bg:#dff3e8; --err:#b42318; --err-bg:#fde8e6; --pend:#8a5a00; --pend-bg:#fdf1d3; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:15px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; }
+  header { background:#1c1b19; color:#fff; padding:16px; display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; }
+  header small { color:#d9c58a; letter-spacing:.06em; text-transform:uppercase; font-size:11px; font-weight:600; }
+  header h1 { margin:4px 0 0; font-size:20px; }
+  header a { color:#d9c58a; font-size:14px; }
+  main { max-width:1100px; margin:0 auto; padding:16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  input, select, textarea { font:inherit; padding:10px; border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--ink); width:100%; }
+  label { font-size:12px; font-weight:600; color:var(--muted); display:block; margin-bottom:4px; }
+  button { font:inherit; font-weight:700; padding:10px 14px; border:0; border-radius:9px; background:var(--acc); color:#1c1b19; cursor:pointer; }
+  button.sec { background:#fff; border:1px solid var(--line); font-weight:600; }
+  button.ok { background:var(--ok); color:#fff; } button.no { background:var(--err); color:#fff; }
+  .login { max-width:360px; margin:40px auto; }
+  .filtros { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; align-items:end; }
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:10px; margin-bottom:14px; }
+  .kpi { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; }
+  .kpi b { display:block; font-size:26px; font-variant-numeric:tabular-nums; }
+  .kpi span { color:var(--muted); font-size:13px; }
+  .dos { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }
+  .barra { display:grid; grid-template-columns:minmax(90px,40%) 1fr 48px; gap:8px; align-items:center; font-size:13px; margin:6px 0; }
+  .barra i { display:block; height:10px; background:var(--acc); border-radius:5px; }
+  .barra em { font-style:normal; text-align:right; font-variant-numeric:tabular-nums; }
+  h2 { font-size:15px; margin:0 0 10px; }
+  .reg { border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:10px; background:#fff; }
+  .reg .top { display:flex; justify-content:space-between; gap:8px; flex-wrap:wrap; align-items:center; }
+  .reg .id { font:700 13px ui-monospace,Menlo,monospace; }
+  .reg .det { margin:6px 0; }
+  .reg .meta { color:var(--muted); font-size:13px; }
+  .pill { font-size:12px; font-weight:700; padding:3px 10px; border-radius:99px; }
+  .Pendiente { background:var(--pend-bg); color:var(--pend); } .Validado { background:var(--ok-bg); color:var(--ok); }
+  .Rechazado { background:var(--err-bg); color:var(--err); }
+  .acciones { display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+  .acciones input { flex:1 1 200px; }
+  .msg { color:var(--err); font-size:14px; margin-top:8px; min-height:1em; }
+  .vacio { text-align:center; color:var(--muted); padding:30px; }
+  .oculto { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <div><small>BU CAM | La Constancia · Distribución</small><h1>Averías · Panel de validación</h1></div>
+  <a id="linkHoja" class="oculto" target="_blank" rel="noopener">Abrir hoja de Google ↗</a>
+</header>
+
+<main>
+  <div id="login" class="card login">
+    <label for="pin">PIN de administrador</label>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="off">
+    <label for="validador" style="margin-top:12px">Tu nombre (queda como "Validado por")</label>
+    <input id="validador" autocomplete="name">
+    <button id="entrar" style="width:100%;margin-top:14px">Entrar</button>
+    <div id="msgLogin" class="msg"></div>
+  </div>
+
+  <div id="panel" class="oculto">
+    <div class="card filtros">
+      <div><label for="desde">Desde</label><input type="date" id="desde"></div>
+      <div><label for="hasta">Hasta</label><input type="date" id="hasta"></div>
+      <div><label for="fRuta">Ruta</label><select id="fRuta"></select></div>
+      <div><label for="fEstado">Estado</label><select id="fEstado"></select></div>
+      <div><button id="buscar" style="width:100%">Actualizar</button></div>
+    </div>
+
+    <div class="kpis">
+      <div class="kpi"><b id="kReg">–</b><span>Registros</span></div>
+      <div class="kpi"><b id="kCant">–</b><span>Cajas equivalentes averiadas</span></div>
+      <div class="kpi"><b id="kPend">–</b><span>Pendientes de validar</span></div>
+      <div class="kpi"><b id="kVal">–</b><span>Cajas equivalentes validadas</span></div>
+    </div>
+
+    <div class="dos">
+      <div class="card"><h2>Cajas equivalentes por motivo</h2><div id="porMotivo"></div></div>
+      <div class="card"><h2>Cajas equivalentes por ruta</h2><div id="porRuta"></div></div>
+    </div>
+
+    <div id="lista"></div>
+  </div>
+</main>
+
+<script>
+  const CAT = <?!= catJson ?>;
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  let PIN = '', DATOS = [];
+
+  $('fRuta').innerHTML = '<option value="">Todas</option>' + CAT.rutas.map(r => '<option>' + esc(r) + '</option>').join('');
+  $('fEstado').innerHTML = '<option value="">Todos</option>' + CAT.estados.map(r => '<option>' + esc(r) + '</option>').join('');
+
+  function iso(d) { d = new Date(d); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); }
+  const hoy = new Date(); const hace7 = new Date(); hace7.setDate(hoy.getDate() - 7);
+  $('desde').value = iso(hace7); $('hasta').value = iso(hoy);
+
+  try {
+    PIN = sessionStorage.getItem('averias_pin') || '';
+    $('validador').value = localStorage.getItem('averias_validador') || '';
+  } catch (e) {}
+
+  function entrar(pin) {
+    $('msgLogin').textContent = '';
+    google.script.run
+      .withSuccessHandler(r => {
+        PIN = pin;
+        try { sessionStorage.setItem('averias_pin', pin); } catch (e) {}
+        $('linkHoja').href = r.urlHoja; $('linkHoja').classList.remove('oculto');
+        $('login').classList.add('oculto'); $('panel').classList.remove('oculto');
+        cargar();
+      })
+      .withFailureHandler(err => {
+        try { sessionStorage.removeItem('averias_pin'); } catch (e) {}
+        $('login').classList.remove('oculto');
+        $('msgLogin').textContent = err.message || 'No se pudo entrar.';
+      })
+      .adminEntrar(pin);
+  }
+
+  $('entrar').addEventListener('click', () => {
+    if (!$('validador').value.trim()) { $('msgLogin').textContent = 'Escribe tu nombre.'; return; }
+    try { localStorage.setItem('averias_validador', $('validador').value.trim()); } catch (e) {}
+    entrar($('pin').value);
+  });
+  $('pin').addEventListener('keydown', e => { if (e.key === 'Enter') $('entrar').click(); });
+  if (PIN && $('validador').value) entrar(PIN);
+
+  function cargar() {
+    $('lista').innerHTML = '<div class="card vacio">Cargando…</div>';
+    google.script.run
+      .withSuccessHandler(rows => { DATOS = rows; pintar(); })
+      .withFailureHandler(err => { $('lista').innerHTML = '<div class="card vacio">' + esc(err.message) + '</div>'; })
+      .adminListar(PIN, { desde: $('desde').value, hasta: $('hasta').value, ruta: $('fRuta').value, estado: $('fEstado').value });
+  }
+  $('buscar').addEventListener('click', cargar);
+
+  const num = v => Number(String(v).replace(',', '.')) || 0;
+  // Cajas equivalentes: usa la conversión guardada; si no existe y se reportó en cajas, usa la cantidad
+  const cajas = r => r.cajas !== '' ? num(r.cajas) : (String(r.unidad).toLowerCase().startsWith('caja') ? num(r.cantidad) : 0);
+  const fmt = n => n.toLocaleString('es-SV', { maximumFractionDigits: 1 });
+
+  function barras(el, mapa) {
+    const items = Object.entries(mapa).sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const max = items.length ? items[0][1] : 1;
+    el.innerHTML = items.length ? items.map(([k, v]) =>
+      '<div class="barra"><span>' + esc(k) + '</span><i style="width:' + Math.max(4, v / max * 100) + '%"></i><em>' + fmt(v) + '</em></div>'
+    ).join('') : '<div class="meta">Sin datos</div>';
+  }
+
+  function pintar() {
+    const total = DATOS.reduce((s, r) => s + cajas(r), 0);
+    $('kReg').textContent = DATOS.length;
+    $('kCant').textContent = fmt(total);
+    $('kPend').textContent = DATOS.filter(r => r.estado === 'Pendiente').length;
+    $('kVal').textContent = fmt(DATOS.filter(r => r.estado === 'Validado').reduce((s, r) => s + cajas(r), 0));
+
+    const pm = {}, pr = {};
+    DATOS.forEach(r => { pm[r.motivo] = (pm[r.motivo] || 0) + cajas(r); pr[r.ruta] = (pr[r.ruta] || 0) + cajas(r); });
+    barras($('porMotivo'), pm); barras($('porRuta'), pr);
+
+    if (!DATOS.length) { $('lista').innerHTML = '<div class="card vacio">No hay registros con estos filtros.</div>'; return; }
+    $('lista').innerHTML = DATOS.map((r, i) =>
+      '<div class="reg">' +
+        '<div class="top"><span class="id">' + esc(r.id) + '</span><span class="pill ' + esc(r.estado) + '">' + esc(r.estado) + '</span></div>' +
+        '<div class="det"><b>' + esc(r.ruta) + '</b> · ' + esc(r.cantidad) + ' ' + esc(String(r.unidad).toLowerCase()) +
+          ' de <b>' + (r.codsap && r.codsap !== 'NO LISTADO' ? esc(r.codsap) + ' – ' : '') + esc(r.producto) + '</b>' +
+          (r.codsap === 'NO LISTADO' ? ' <span class="pill Pendiente">SKU no listado</span>' : '') +
+          (r.cajas !== '' && !String(r.unidad).toLowerCase().startsWith('caja') ? ' <span class="meta">(≈ ' + fmt(num(r.cajas)) + ' cajas)</span>' : '') +
+          ' · ' + esc(r.motivo) + '<div class="meta">' + esc(r.tipo) + '</div></div>' +
+        '<div class="meta">Jornada ' + esc(r.fecha) + ' · reportó ' + esc(r.reportadoPor) + ' · registrado ' + esc(r.registro) +
+          (r.foto && r.foto.indexOf('http') === 0 ? ' · <a href="' + esc(r.foto) + '" target="_blank" rel="noopener">Ver foto</a>' : '') + '</div>' +
+        (r.comentario ? '<div class="meta">“' + esc(r.comentario) + '”</div>' : '') +
+        (r.validadoPor ? '<div class="meta">' + esc(r.estado) + ' por ' + esc(r.validadoPor) + ' el ' + esc(r.fechaVal) +
+          (r.obsVal ? ' — ' + esc(r.obsVal) : '') + '</div>' : '') +
+        '<div class="acciones">' +
+          '<input placeholder="Observación (opcional)" id="obs' + i + '" value="' + esc(r.obsVal) + '">' +
+          '<button class="ok" data-i="' + i + '" data-e="Validado">Validar</button>' +
+          '<button class="no" data-i="' + i + '" data-e="Rechazado">Rechazar</button>' +
+          (r.estado !== 'Pendiente' ? '<button class="sec" data-i="' + i + '" data-e="Pendiente">Volver a pendiente</button>' : '') +
+        '</div><div class="msg" id="m' + i + '"></div>' +
+      '</div>'
+    ).join('');
+  }
+
+  $('lista').addEventListener('click', e => {
+    const b = e.target.closest('button[data-e]'); if (!b) return;
+    const i = Number(b.dataset.i), r = DATOS[i], estado = b.dataset.e;
+    const obs = $('obs' + i).value.trim();
+    if (estado === 'Rechazado' && !obs) { $('m' + i).textContent = 'Escribe el motivo del rechazo.'; return; }
+    b.disabled = true;
+    google.script.run
+      .withSuccessHandler(() => cargar())
+      .withFailureHandler(err => { b.disabled = false; $('m' + i).textContent = err.message; })
+      .adminValidar(PIN, r.id, estado, $('validador').value.trim(), obs);
+  });
+</script>
+</body>
+</html>

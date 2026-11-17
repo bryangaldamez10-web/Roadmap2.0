@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block titulo %}{{ 'Nuevo usuario' if nuevo else 'Editar usuario' }}{% endblock %}
+{% block contenido %}
+<div class="form-movil">
+  <div class="titulo"><div><h1>{{ 'Nuevo usuario' if nuevo else 'Editar ' ~ u.usuario }}</h1>
+    {% if nuevo %}<p class="muted">Se genera una contraseña temporal que la persona cambia al entrar.</p>{% endif %}</div></div>
+  <form class="card" method="post">
+    <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+    {% if nuevo %}
+    <label for="usuario">Usuario</label>
+    <input id="usuario" name="usuario" value="{{ u.get('usuario', '') }}" placeholder="ej. jperez o ruta.ds0099" autocapitalize="none" required>
+    {% endif %}
+    <label for="nombre">Nombre completo</label>
+    <input id="nombre" name="nombre" value="{{ u.get('nombre', '') }}" required>
+    <label for="rol">Rol</label>
+    <select id="rol" name="rol" required>
+      {% for k, v in ROLES.items() %}<option value="{{ k }}" {{ 'selected' if u.get('rol') == k }}>{{ v }}</option>{% endfor %}
+    </select>
+    <div id="campoRuta">
+      <label for="ruta_codigo">Ruta asignada</label>
+      <select id="ruta_codigo" name="ruta_codigo"><option value="">Elegir…</option>
+        {% for r in rutas %}<option {{ 'selected' if u.get('ruta_codigo') == r }}>{{ r }}</option>{% endfor %}</select>
+    </div>
+    <label for="telefono">Teléfono <span class="opc">(opcional)</span></label>
+    <input id="telefono" name="telefono" value="{{ u.get('telefono') or '' }}" inputmode="tel">
+    <button class="btn bloque" style="margin-top:18px">{{ 'Crear usuario' if nuevo else 'Guardar cambios' }}</button>
+  </form>
+  {% if not nuevo %}
+  <div class="card acciones">
+    <form method="post" style="margin:0"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="btn sec" name="accion" value="restablecer">Restablecer contraseña</button></form>
+    <form method="post" style="margin:0"><input type="hidden" name="csrf" value="{{ csrf_token() }}">
+      <button class="btn sec" name="accion" value="alternar">{{ 'Desactivar usuario' if u.activo else 'Activar usuario' }}</button></form>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  (function () {
+    var rol = document.getElementById('rol'), campo = document.getElementById('campoRuta');
+    function ver() { campo.style.display = rol.value === 'ruta' ? '' : 'none'; }
+    rol.addEventListener('change', ver); ver();
+  })();
+</script>
+{% endblock %}

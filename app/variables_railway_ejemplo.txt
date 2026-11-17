@@ -1,0 +1,7 @@
+# Variables de ejemplo. En Railway se configuran en la pestaña "Variables" del servicio web.
+SECRET_KEY=cambia-esto-por-una-cadena-larga-y-aleatoria
+# DATABASE_URL la pone Railway automáticamente al agregar PostgreSQL.
+ADMIN_USUARIO=admin
+ADMIN_CLAVE=Cambiar-2026
+COOKIE_SEGURA=1
+# CARGAR_DEMO=1   # solo para una demostración con datos ficticios

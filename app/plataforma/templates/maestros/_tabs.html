@@ -1,0 +1,6 @@
+<div class="seg" style="margin-bottom:14px;max-width:720px;overflow-x:auto">
+  {% for clave, e in entidades.items() if e.get('en_maestros', True) %}
+  <a href="{{ url_for('maestros.lista', tipo=clave) }}" style="text-align:center;padding:10px 8px;border-radius:9px;text-decoration:none;font-weight:600;white-space:nowrap;{{ 'background:#1c1b19;color:#fff' if activo == clave else 'color:#1c1b19' }}">{{ e.titulo }}</a>
+  {% endfor %}
+  {% if puede('cargas') %}<a href="{{ url_for('maestros.motivos') }}" style="text-align:center;padding:10px 8px;border-radius:9px;text-decoration:none;font-weight:600;white-space:nowrap;{{ 'background:#1c1b19;color:#fff' if activo == 'motivos' else 'color:#1c1b19' }}">Motivos</a>{% endif %}
+</div>
